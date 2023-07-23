@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"debug/gosym"
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"syscall"
 )
 
@@ -49,6 +51,24 @@ func run(target string) {
 	pgid, _ := syscall.Getpgid(pid)
 
 	must(syscall.PtraceSetOptions(pid, syscall.PTRACE_O_TRACECLONE))
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Println("Enter break points separated by new line")
+	
+	// for set break points
+	for {
+		input, err := reader.ReadString('\n')
+		must(err)
+		if input == "q\n" {
+			break
+		}
+		line, err = strconv.Atoi(input[:(len(input)-1)])
+		if err != nil {
+			println("Invalid input for break point", input)
+			break
+		}
+		breakpointSet, originalCode = setBreak(pid, targetfile, line)
+	}
 
 	if inputContinue(pid) {
 		must(syscall.PtraceCont(pid, 0))
@@ -102,3 +122,4 @@ func must(err error) {
 		panic(err)
 	}
 }
+

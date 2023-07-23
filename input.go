@@ -3,34 +3,31 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"errors"
 	"os"
-	"strconv"
+	"io"
 	"strings"
 )
 
 func inputContinue(pid int) bool {
-	sub := false
-	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Printf("\n(C)ontinue, (S)tep, set (B)reakpoint or (Q)uit? > ")
+	scanner := bufio.NewReader(os.Stdin)
+	fmt.Printf("\n(C)ontinue, (S)tep or (Q)uit? > ")
 	for {
-		scanner.Scan()
-		input := scanner.Text()
-		switch strings.ToUpper(input) {
+		input,err:=scanner.ReadString('\n')
+		if err != nil {
+			if !errors.Is(err,io.EOF) {
+				return false
+			}
+			return false
+		}
+		switch strings.ToUpper(input[:len(input)-1]) {
 		case "C":
 			return true
 		case "S":
 			return false
-		case "B":
-			fmt.Printf("  Enter line number in %s: > ", targetfile)
-			sub = true
 		case "Q":
 			os.Exit(0)
 		default:
-			if sub {
-				line, _ = strconv.Atoi(input)
-				breakpointSet, originalCode = setBreak(pid, targetfile, line)
-				return true
-			}
 			fmt.Printf("Unexpected input %s\n", input)
 			fmt.Printf("\n(C)ontinue, (S)tep, set (B)reakpoint or (Q)uit? > ")
 		}
@@ -46,5 +43,5 @@ func setBreak(pid int, filename string, line int) (bool, []byte) {
 	}
 
 	// fmt.Printf("Stopping at %X\n", pc)
-	return true, replaceCode(pid, pc, []byte{0xCC})
+	return true, replaceCode(pid, pc, interruptCode)
 }
